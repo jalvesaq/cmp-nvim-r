@@ -151,7 +151,6 @@ end
 
 source.new = function()
     local self = setmetatable({}, { __index = source })
-    vim.g.CmpNvimR_running = 1
     return self
 end
 
@@ -178,6 +177,14 @@ source.is_available = function()
         end
     end
     return false
+end
+
+local fix_doc = function(txt)
+    -- The nclientserver replaces ' with \004 and \n with \002.
+    -- We have to revert this:
+    txt = string.gsub(txt , "\002", "\n")
+    txt = string.gsub(txt , "\004", "'")
+    return txt
 end
 
 local format_usage = function(fname, u)
@@ -253,11 +260,12 @@ source.resolve = function(_, completion_item, callback)
              end
          else
              if completion_item.user_data.cls and completion_item.user_data.cls == 'a' then
-                 completion_item.documentation.value = completion_item.user_data.argument
+                 completion_item.documentation.value = fix_doc(completion_item.user_data.argument)
                  callback(completion_item)
              elseif completion_item.user_data.cls and completion_item.user_data.cls == 'l' then
-                 completion_item.documentation.value = "**" .. completion_item.user_data.ttl ..
+                 local txt = "**" .. completion_item.user_data.ttl ..
                      "**\n\n" .. completion_item.user_data.descr
+                 completion_item.documentation.value = fix_doc(txt)
                  callback(completion_item)
              else
                  vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "6" ..
@@ -284,14 +292,11 @@ source.complinfo = function(info)
         doc = doc .. "\n" .. info.descr .. '\n'
     end
     if info.cls == 'f' and info.usage then
-        -- Log("Usage:\n")
-        -- LogTable(info.usage)
         doc = doc .. format_usage(info.word, info.usage)
     end
-    doc = string.gsub(doc, '\x04', "'")
     local resp = last_compl_item
     resp.documentation = {kind = cmp.lsp.MarkupKind.Markdown,
-                          value = doc }
+                          value = fix_doc(doc) }
     cb_inf({items = {resp}})
 end
 
@@ -522,7 +527,7 @@ source.complete = function(_, request, callback)
     ter = {
         start = {
             line = request.context.cursor.line,
-            character = request.offset,
+            character = request.offset - 1,
         },
         ['end'] = {
             line = request.context.cursor.line,
