@@ -542,7 +542,9 @@ source.complete = function(_, request, callback)
                          request.context.cursor.row)
     if nra.fnm then
         -- We are passing arguments for a function
-        if nra.fnm == "library" or nra.fnm == "require" then
+
+        -- Special completion for library and require
+        if (nra.fnm == "library" or nra.fnm == "require") and (not nra.firstobj or nra.firstobj == wrd) then
             vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "5" .. compl_id .. "\003\004" .. wrd .. "\n")
             return nil
         end
