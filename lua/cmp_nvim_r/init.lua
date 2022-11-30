@@ -163,7 +163,7 @@ source.get_keyword_pattern = function()
 end
 
 source.get_trigger_characters = function()
-    return { '(', '"', '@', '$' }
+    return { ':', '(', '"', '@', '$' }
 end
 
 source.get_debug_name = function()
@@ -540,6 +540,7 @@ source.complete = function(_, request, callback)
     local nra
     nra = NeedRArguments(request.context.cursor_before_line,
                          request.context.cursor.row)
+
     if nra.fnm then
         -- We are passing arguments for a function
 
