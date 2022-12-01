@@ -198,14 +198,18 @@ local format_usage = function(fname, u)
         elseif #v == 2 then
             a = v[1] .. ' = ' .. v[2]
         end
-        if k < #u then
-            a = a .. ', '
+
+        -- a will be nil if u is an empty table
+        if a then
+            if k < #u then
+                a = a .. ', '
+            end
+            if (#line + #a) > options.doc_width then
+                fmt = fmt .. line .. "\n"
+                line = "  "
+            end
+            line = line .. a
         end
-        if (#line + #a) > options.doc_width then
-            fmt = fmt .. line .. "\n"
-            line = "  "
-        end
-        line = line .. a
     end
     fmt = fmt .. line .. ')\n```\n'
     return fmt
