@@ -24,7 +24,7 @@ local kindtbl = {["f"] = cmp.lsp.CompletionItemKind.Function,       -- function
                  ["&"] = cmp.lsp.CompletionItemKind.Event,          -- promise
                  ["l"] = cmp.lsp.CompletionItemKind.Module,         -- library
                  ["a"] = cmp.lsp.CompletionItemKind.Variable,       -- function argument
-                 ["v"] = cmp.lsp.CompletionItemKind.Field,          -- function argument
+                 ["v"] = cmp.lsp.CompletionItemKind.Field,          -- data.frame column
                  ["*"] = cmp.lsp.CompletionItemKind.TypeParameter } -- other
 
 local options = {filetypes = {'r', 'rmd', 'quarto', 'rnoweb', 'rhelp'},
@@ -378,11 +378,15 @@ local GetFirstObj = function(line, lnum)
                 -- The opening parenthesis is here. Now, get the function and
                 -- its first object (if in the same line)
                 piece = string.sub(line, 1, idx - 1)
-                funname = string.match(piece, ".-([%w%._]+)$")
-                pkg = string.match(piece, ".-([%w%._]+)::" .. funname)
+                funname = string.match(piece, ".-([%w%._]+)%s*$")
+                if funname then
+                    pkg = string.match(piece, ".-([%w%._]+)::" .. funname)
+                end
                 piece = string.sub(line, idx + 1)
                 firstobj = string.match(piece, "%s-([%w%.%_]+)")
-                idx = string.find(line, funname)
+                if funname then
+                    idx = string.find(line, funname)
+                end
                 break
             end
             idx = idx - 1
