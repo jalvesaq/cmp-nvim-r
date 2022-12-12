@@ -236,6 +236,11 @@ source.finish_get_summary = function()
     cb_inf({items = {last_compl_item}})
 end
 
+source.finish_get_args = function(a)
+    last_compl_item.documentation.value = fix_doc(a)
+    cb_inf({items = {last_compl_item}})
+end
+
 source.resolve = function(_, completion_item, callback)
     cb_inf = callback
     last_compl_item = completion_item
@@ -263,7 +268,15 @@ source.resolve = function(_, completion_item, callback)
                 end
              end
          else
-             if completion_item.user_data.cls and completion_item.user_data.cls == 'a' then
+             if completion_item.user_data.cls and completion_item.user_data.cls == 'A' then
+                 -- Show arguments documentation when R isn't running
+                 completion_item.documentation.value = fix_doc(completion_item.user_data.argument)
+                 vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "7" ..
+                                 completion_item.user_data.pkg .. "\002" ..
+                                 completion_item.user_data.fnm .. "\002" ..
+                                 completion_item.user_data.itm .. "\n")
+             elseif completion_item.user_data.cls and completion_item.user_data.cls == 'a' then
+                 -- Show arguments documentation when R is running
                  completion_item.documentation.value = fix_doc(completion_item.user_data.argument)
                  callback(completion_item)
              elseif completion_item.user_data.cls and completion_item.user_data.cls == 'l' then
@@ -305,11 +318,37 @@ source.complinfo = function(info)
 end
 
 source.asynccb = function(cid, compl)
-    if cid == compl_id then
-        local resp = {}
-        for _, v in pairs(compl) do
-            local kind = cmp.lsp.CompletionItemKind.TypeParameter
-            local stxt = ""
+    if cid ~= compl_id then
+        return nil
+    end
+
+    local resp = {}
+    for _, v in pairs(compl) do
+        local kind = cmp.lsp.CompletionItemKind.TypeParameter
+        local stxt = ""
+
+        -- Completion of function arguments
+        if v.args then
+            for _, b in pairs(v.args) do
+                local lbl = ""
+                if #b == 2 then
+                    lbl = b[1] .. " = "
+                else
+                    lbl = b[1]
+                end
+                table.insert(resp, {
+                    label = lbl,
+                    kind = kindtbl["a"],
+                    sortText = "0",
+                    user_data = {cls = "A", pkg = v.pkg, fnm = v.fnm, itm = b[1], argument = "Not yet"},
+                    textEdit = {newText = lbl, range = ter},
+                    documentation = {
+                        kind = cmp.lsp.MarkupKind.Markdown,
+                        value = ""
+                    }
+                })
+            end
+        else
             if v.user_data then
                 if v.user_data.cls then
                     if kindtbl[v.user_data.cls] then
@@ -321,19 +360,19 @@ source.asynccb = function(cid, compl)
                         stxt = '9'
                     end
                 end
-            end
-            table.insert(resp,
+                table.insert(resp,
                 {label = v['word'],
-                 kind = kind,
-                 user_data = v.user_data,
-                 sortText = stxt,
-                 textEdit = {newText = v['word'], range = ter},
-                 documentation = {
-                     kind = cmp.lsp.MarkupKind.Markdown,
-                     value = v['menu'] }})
+                kind = kind,
+                user_data = v.user_data,
+                sortText = stxt,
+                textEdit = {newText = v['word'], range = ter},
+                documentation = {
+                    kind = cmp.lsp.MarkupKind.Markdown,
+                    value = v['menu'] }})
+            end
         end
-        cb_cmp(resp)
     end
+    cb_cmp(resp)
 end
 
 local GetPipedObj = function(line, lnum)
@@ -562,7 +601,16 @@ source.complete = function(_, request, callback)
             return nil
         end
 
-        if vim.g.rplugin.nvimcom_port ~= 0 then
+        if vim.g.rplugin.nvimcom_port == 0 then
+            -- Get the arguments of the first function whose name matches nra.fnm
+            if nra.pkg then
+                vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.pkg .. "::" .. nra.fnm .. "\n")
+            else
+                vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.fnm .. "\n")
+            end
+            return nil
+        else
+            -- Get arguments according to class of first object
             vim.fn.delete(vim.g.rplugin.tmpdir .. "/args_for_completion")
             local msg
             msg = 'nvimcom:::nvim_complete_args("' .. compl_id .. '", "' .. nra.fnm .. '", "' .. wrd .. '"'

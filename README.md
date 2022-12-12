@@ -1,8 +1,6 @@
 # cmp-nvim-r
 
-
 Completion source for [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) using [Nvim-R](https://github.com/jalvesaq/Nvim-R) as backend.
-
 
 ## Installation
 
@@ -47,14 +45,13 @@ require'cmp_nvim_r'.setup({
   })
 ```
 
-
 ### nvim-cmp
 
 The source `cmp_nvim_r` does not require any special configuration of
-`nvim-cmp` to work, and the same configuration does not work for everone.
+`nvim-cmp` to work, and people have different preferences and workflows.
 Anyway, I share below what worked best for me:
 
-  - `cmp-nvim-r` adds sets the field sortText of completed items as "0" for
+  - `cmp-nvim-r` sets the field sortText of completed items as "0" for
     function arguments and "9" for everything else. This means that function
     arguments will always be at the top of the list of suggestions if you put
     `cmp.config.compare.sort_text` at the top of list of compare `nvim-cmp`
@@ -101,4 +98,3 @@ cmp.setup({
     }),
 })
 ```
-
