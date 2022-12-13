@@ -149,6 +149,13 @@ local get_quarto_cell_opts = function()
     return qopts
 end
 
+local send_to_ncs = function(msg)
+    if vim.g.rplugin.jobs['ClientServer'] == 0 then
+        return
+    end
+    vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], msg)
+end
+
 source.new = function()
     local self = setmetatable({}, { __index = source })
     return self
@@ -271,10 +278,10 @@ source.resolve = function(_, completion_item, callback)
              if completion_item.user_data.cls and completion_item.user_data.cls == 'A' then
                  -- Show arguments documentation when R isn't running
                  completion_item.documentation.value = fix_doc(completion_item.user_data.argument)
-                 vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "7" ..
-                                 completion_item.user_data.pkg .. "\002" ..
-                                 completion_item.user_data.fnm .. "\002" ..
-                                 completion_item.user_data.itm .. "\n")
+                 send_to_ncs("7" ..
+                             completion_item.user_data.pkg .. "\002" ..
+                             completion_item.user_data.fnm .. "\002" ..
+                             completion_item.user_data.itm .. "\n")
              elseif completion_item.user_data.cls and completion_item.user_data.cls == 'a' then
                  -- Show arguments documentation when R is running
                  completion_item.documentation.value = fix_doc(completion_item.user_data.argument)
@@ -285,9 +292,8 @@ source.resolve = function(_, completion_item, callback)
                  completion_item.documentation.value = fix_doc(txt)
                  callback(completion_item)
              else
-                 vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "6" ..
-                                 completion_item.label .. "\002" ..
-                                 completion_item.user_data.pkg .. "\n")
+                 send_to_ncs("6" .. completion_item.label .. "\002" ..
+                             completion_item.user_data.pkg .. "\n")
              end
              return nil
          end
@@ -593,7 +599,7 @@ source.complete = function(_, request, callback)
 
         -- Special completion for library and require
         if (nra.fnm == "library" or nra.fnm == "require") and (not nra.firstobj or nra.firstobj == wrd) then
-            vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "5" .. compl_id .. "\003\004" .. wrd .. "\n")
+            send_to_ncs("5" .. compl_id .. "\003\004" .. wrd .. "\n")
             return nil
         end
 
@@ -604,9 +610,9 @@ source.complete = function(_, request, callback)
         if vim.g.rplugin.nvimcom_port == 0 then
             -- Get the arguments of the first function whose name matches nra.fnm
             if nra.pkg then
-                vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.pkg .. "::" .. nra.fnm .. "\n")
+                send_to_ncs("5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.pkg .. "::" .. nra.fnm .. "\n")
             else
-                vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.fnm .. "\n")
+                send_to_ncs("5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.fnm .. "\n")
             end
             return nil
         else
@@ -633,7 +639,7 @@ source.complete = function(_, request, callback)
     if #wrd == 0 or snm == 'rString' then
         return nil
     end
-    vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], "5" .. compl_id .. "\003" .. wrd .. "\n")
+    send_to_ncs("5" .. compl_id .. "\003" .. wrd .. "\n")
 
     return nil
 end
