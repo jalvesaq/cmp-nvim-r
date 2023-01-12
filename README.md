@@ -98,3 +98,15 @@ cmp.setup({
     }),
 })
 ```
+### languageserver
+
+Since `cmp-nvim-r` and the R package `languageserver` provide completions for
+the same code, and completions from the `languageserver` might be the first
+ones to be displayed by `nvim-cmp`, you may want to put this in your `~/.Rprofile`:
+
+```r
+# Disable completion from the language server
+options(languageserver.server_capabilities =
+        list(completionProvider = FALSE, completionItemResolve = FALSE))
+
+```
