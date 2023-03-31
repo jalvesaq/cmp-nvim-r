@@ -382,11 +382,11 @@ source.asynccb = function(cid, compl)
 end
 
 local GetPipedObj = function(line, lnum)
-    if string.find(line, "|>%s*$") then
-        return string.match(line, ".-([%w%._]+)%s*|>%s*$")
+    if string.find(line, "|>") then
+        return string.match(line, ".-([%w%._]+)%s*|>")
     end
-    if string.find(line, "%%>%%%s*$") then
-        return string.match(line, ".-([%w%._]+)%s*%%>%%%s*$")
+    if string.find(line, "%%>%%") then
+        return string.match(line, ".-([%w%._]+)%s*%%>%%")
     end
     local l
     l = vim.fn.getline(lnum - 1)
