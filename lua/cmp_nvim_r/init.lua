@@ -381,20 +381,21 @@ source.asynccb = function(cid, compl)
     cb_cmp(resp)
 end
 
-local GetPipedObj = function(line, lnum)
+local GetPipedObj
+GetPipedObj = function(line, lnum)
+    local l
+    l = vim.fn.getline(lnum - 1)
+    if type(l) == "string" and string.find(l, "|>%s*$") then
+        return GetPipedObj(l, lnum - 1)
+    end
+    if type(l) == "string" and string.find(l, "%%>%%%s*$") then
+        return GetPipedObj(l, lnum - 1)
+    end
     if string.find(line, "|>") then
         return string.match(line, ".-([%w%._]+)%s*|>")
     end
     if string.find(line, "%%>%%") then
         return string.match(line, ".-([%w%._]+)%s*%%>%%")
-    end
-    local l
-    l = vim.fn.getline(lnum - 1)
-    if type(l) == "string" and string.find(l, "|>%s*$") then
-        return string.match(l, ".-([%w%._]+)%s*|>%s*$")
-    end
-    if type(l) == "string" and string.find(l, "%%>%%%s*$") then
-        return string.match(l, ".-([%w%._]+)%s*%%>%%%s*$")
     end
     return nil
 end
