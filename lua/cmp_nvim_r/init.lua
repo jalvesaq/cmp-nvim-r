@@ -170,7 +170,7 @@ source.get_keyword_pattern = function()
 end
 
 source.get_trigger_characters = function()
-    return { ':', '(', '"', '@', '$' }
+    return { ' ', ':', '(', '"', '@', '$' }
 end
 
 source.get_debug_name = function()
