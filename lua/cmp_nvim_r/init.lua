@@ -608,7 +608,8 @@ source.complete = function(_, request, callback)
             return nil
         end
 
-        if vim.g.rplugin.nvimcom_port == 0 then
+        -- TODO: keep vim.g.rplugin == 0 after the merge of Nvim-R `remote` branch
+        if (vim.g.rplugin.nvimcom_port and vim.g.rplugin.nvimcom_port == 0) or (vim.g.rplugin.R_pid and vim.g.rplugin.R_pid == 0) then
             -- Get the arguments of the first function whose name matches nra.fnm
             if nra.pkg then
                 send_to_ncs("5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.pkg .. "::" .. nra.fnm .. "\n")
