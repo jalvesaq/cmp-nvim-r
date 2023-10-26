@@ -149,11 +149,17 @@ local get_quarto_cell_opts = function()
     return qopts
 end
 
-local send_to_ncs = function(msg)
-    if vim.g.rplugin.jobs['ClientServer'] == 0 then
+local send_to_nrs = function(msg)
+    -- TODO: Delete ClientServer
+    if (vim.g.rplugin.jobs['ClientServer'] and vim.g.rplugin.jobs['ClientServer'] == 0) or
+        (vim.g.rplugin.jobs['Server'] and vim.g.rplugin.jobs['Server'] == 0) then
         return
     end
-    vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], msg)
+    if vim.g.rplugin.jobs['Server'] then
+        vim.fn.chansend(vim.g.rplugin.jobs["Server"], msg)
+    else
+        vim.fn.chansend(vim.g.rplugin.jobs["ClientServer"], msg)
+    end
 end
 
 source.new = function()
@@ -187,7 +193,7 @@ source.is_available = function()
 end
 
 local fix_doc = function(txt)
-    -- The nclientserver replaces ' with \004 and \n with \002.
+    -- The nvimrserver replaces ' with \004 and \n with \002.
     -- We have to revert this:
     txt = string.gsub(txt , "\002", "\n")
     txt = string.gsub(txt , "\004", "'")
@@ -222,6 +228,16 @@ local format_usage = function(fname, u)
     return fmt
 end
 
+source.finish_ge_fun_args = function(u)
+    u = string.gsub(u, "\002", "\n")
+    u = string.gsub(u, "\004", "''")
+    u = string.gsub(u, "\005", "\\\"")
+    last_compl_item.documentation.value = last_compl_item.documentation.value ..
+        format_usage(last_compl_item.label, vim.fn.eval('[' .. fix_doc(u) .. ']'))
+    cb_inf({items = {last_compl_item}})
+end
+
+-- FIXME: Delete this function after merging the remote branch on Nvim-R
 source.finish_glbenv_fun = function()
     local f = io.open(vim.g.rplugin.tmpdir .. "/args_for_completion", "r")
     if f then
@@ -233,6 +249,13 @@ source.finish_glbenv_fun = function()
     cb_inf({items = {last_compl_item}})
 end
 
+source.finish_summary = function(s)
+    s = fix_doc(s)
+    last_compl_item.documentation.value = last_compl_item.documentation.value .. s
+    cb_inf({items = {last_compl_item}})
+end
+
+-- FIXME: Delete this function after merging the remote branch on Nvim-R
 source.finish_get_summary = function()
     local f = io.open(vim.g.rplugin.tmpdir .. "/args_for_completion", "r")
     if f then
@@ -278,7 +301,7 @@ source.resolve = function(_, completion_item, callback)
              if completion_item.user_data.cls and completion_item.user_data.cls == 'A' then
                  -- Show arguments documentation when R isn't running
                  completion_item.documentation.value = fix_doc(completion_item.user_data.argument)
-                 send_to_ncs("7" ..
+                 send_to_nrs("7" ..
                              completion_item.user_data.pkg .. "\002" ..
                              completion_item.user_data.fnm .. "\002" ..
                              completion_item.user_data.itm .. "\n")
@@ -292,7 +315,7 @@ source.resolve = function(_, completion_item, callback)
                  completion_item.documentation.value = fix_doc(txt)
                  callback(completion_item)
              else
-                 send_to_ncs("6" .. completion_item.label .. "\002" ..
+                 send_to_nrs("6" .. completion_item.label .. "\002" ..
                              completion_item.user_data.pkg .. "\n")
              end
              return nil
@@ -574,7 +597,7 @@ source.complete = function(_, request, callback)
         return nil
     end
 
-    -- required by nclientserver
+    -- required by nvimrserver
     compl_id = compl_id + 1
 
     local wrd = string.sub(request.context.cursor_before_line, request.offset)
@@ -600,7 +623,7 @@ source.complete = function(_, request, callback)
 
         -- Special completion for library and require
         if (nra.fnm == "library" or nra.fnm == "require") and (not nra.firstobj or nra.firstobj == wrd) then
-            send_to_ncs("5" .. compl_id .. "\003\004" .. wrd .. "\n")
+            send_to_nrs("5" .. compl_id .. "\003\004" .. wrd .. "\n")
             return nil
         end
 
@@ -608,18 +631,18 @@ source.complete = function(_, request, callback)
             return nil
         end
 
-        -- TODO: keep vim.g.rplugin == 0 after the merge of Nvim-R `remote` branch
+        -- TODO: keep only vim.g.rplugin.R_pid == 0 after the merge of Nvim-R `remote` branch
         if (vim.g.rplugin.nvimcom_port and vim.g.rplugin.nvimcom_port == 0) or (vim.g.rplugin.R_pid and vim.g.rplugin.R_pid == 0) then
             -- Get the arguments of the first function whose name matches nra.fnm
             if nra.pkg then
-                send_to_ncs("5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.pkg .. "::" .. nra.fnm .. "\n")
+                send_to_nrs("5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.pkg .. "::" .. nra.fnm .. "\n")
             else
-                send_to_ncs("5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.fnm .. "\n")
+                send_to_nrs("5" .. compl_id .. "\003\005" .. wrd .. "\005" .. nra.fnm .. "\n")
             end
             return nil
         else
             -- Get arguments according to class of first object
-            vim.fn.delete(vim.g.rplugin.tmpdir .. "/args_for_completion")
+            vim.fn.delete(vim.g.rplugin.tmpdir .. "/args_for_completion") -- TODO: Delete this line after merging the remote branch into Nvim-R
             local msg
             msg = 'nvimcom:::nvim_complete_args("' .. compl_id .. '", "' .. nra.fnm .. '", "' .. wrd .. '"'
             if nra.firstobj then
@@ -632,7 +655,7 @@ source.complete = function(_, request, callback)
             end
             msg = msg .. ')'
 
-            -- Save documentation of arguments to be used by nclientserver
+            -- Save documentation of arguments to be used by nvimrserver
             vim.fn.SendToNvimcom("E", msg)
             return nil
         end
@@ -641,7 +664,7 @@ source.complete = function(_, request, callback)
     if #wrd == 0 or snm == 'rString' then
         return nil
     end
-    send_to_ncs("5" .. compl_id .. "\003" .. wrd .. "\n")
+    send_to_nrs("5" .. compl_id .. "\003" .. wrd .. "\n")
 
     return nil
 end
