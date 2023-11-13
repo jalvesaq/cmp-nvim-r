@@ -472,7 +472,7 @@ local NeedRArguments = function(line, lnum)
             nline = string.sub(nline, 1, cnum)
             for k, v in pairs(vim.g.R_fun_data_2) do
                 for _, a in pairs(v) do
-                    if funname == a then
+                    if a == '*' or funname == a then
                         _, funname2, firstobj2, nline, nlnum, _ = GetFirstObj(nline, nlnum)
                         if funname2 == k then
                             firstobj = firstobj2
