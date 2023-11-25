@@ -634,10 +634,20 @@ source.complete = function(_, request, callback)
         end
     end
 
-    if #wrd == 0 or snm == 'rString' then
-        -- FIXME: should reset completion to fix #10
+    if snm == 'rString' then
         return nil
     end
+
+    if #wrd == 0 then
+        for _, v in pairs(cmp.core.sources) do
+            if v.name == "cmp_nvim_r" then
+                v:reset()
+                break
+            end
+        end
+        return nil
+    end
+
     send_to_nrs("5" .. compl_id .. "\003" .. wrd .. "\n")
 
     return nil
