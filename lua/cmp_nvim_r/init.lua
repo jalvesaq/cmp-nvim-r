@@ -365,11 +365,11 @@ source.asynccb = function(cid, compl)
                     end
                 end
                 table.insert(resp,
-                {label = v['word'],
+                {label = string.gsub(v['word'], "\004", "'"),
                 kind = kind,
                 user_data = v.user_data,
                 sortText = stxt,
-                textEdit = {newText = v['word'], range = ter},
+                textEdit = {newText = string.gsub(v['word'], "\004", "'"), range = ter},
                 documentation = {
                     kind = cmp.lsp.MarkupKind.Markdown,
                     value = v['menu'] }})
