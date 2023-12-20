@@ -230,7 +230,7 @@ source.finish_ge_fun_args = function(u)
     u = string.gsub(u, "\002", "\n")
     u = string.gsub(u, "\004", "''")
     u = string.gsub(u, "\005", "\\\"")
-    u = string.gsub(u, "\007", "'")
+    u = string.gsub(u, "\x12", "'")
     last_compl_item.documentation.value = last_compl_item.documentation.value ..
         format_usage(last_compl_item.label, vim.fn.eval('[' .. fix_doc(u) .. ']'))
     cb_inf({items = {last_compl_item}})
