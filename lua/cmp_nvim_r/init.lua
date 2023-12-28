@@ -191,10 +191,10 @@ source.is_available = function()
 end
 
 local fix_doc = function(txt)
-    -- The nvimrserver replaces ' with \004 and \n with \002.
+    -- The nvimrserver replaces ' with \x13 and \n with \x14.
     -- We have to revert this:
-    txt = string.gsub(txt , "\002", "\n")
-    txt = string.gsub(txt , "\004", "'")
+    txt = string.gsub(txt , "\x14", "\n")
+    txt = string.gsub(txt , "\x13", "'")
     return txt
 end
 
@@ -227,8 +227,8 @@ local format_usage = function(fname, u)
 end
 
 source.finish_ge_fun_args = function(u)
-    u = string.gsub(u, "\002", "\n")
-    u = string.gsub(u, "\004", "''")
+    u = string.gsub(u, "\x14", "\n")
+    u = string.gsub(u, "\x13", "''")
     u = string.gsub(u, "\005", "\\\"")
     u = string.gsub(u, "\x12", "'")
     last_compl_item.documentation.value = last_compl_item.documentation.value ..
@@ -263,6 +263,7 @@ source.resolve = function(_, completion_item, callback)
                     return nil
                 elseif completion_item.user_data.cls == '{' or
                        completion_item.user_data.cls == '!' or
+                       completion_item.user_data.cls == '%' or
                        completion_item.user_data.cls == '~' then
                     vim.fn.SendToNvimcom("E", 'nvimcom:::nvim.get.summary(' ..
                        completion_item.label .. ', 59)')
@@ -366,11 +367,11 @@ source.asynccb = function(cid, compl)
                     end
                 end
                 table.insert(resp,
-                {label = string.gsub(v['word'], "\004", "'"),
+                {label = string.gsub(v['word'], "\x13", "'"),
                 kind = kind,
                 user_data = v.user_data,
                 sortText = stxt,
-                textEdit = {newText = string.gsub(v['word'], "\004", "'"), range = ter},
+                textEdit = {newText = string.gsub(v['word'], "\x13", "'"), range = ter},
                 documentation = {
                     kind = cmp.lsp.MarkupKind.Markdown,
                     value = v['menu'] }})
