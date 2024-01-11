@@ -170,7 +170,7 @@ source.setup = function(opts)
 end
 
 source.get_keyword_pattern = function()
-    return '[\\._@\\$:_[:digit:][:lower:][:upper:]\\u00FF-\\uFFFF]*'
+    return '[`\\._@\\$:_[:digit:][:lower:][:upper:]\\u00FF-\\uFFFF]*'
 end
 
 source.get_trigger_characters = function()
@@ -196,6 +196,27 @@ local fix_doc = function(txt)
     txt = string.gsub(txt , "\x14", "\n")
     txt = string.gsub(txt , "\x13", "'")
     return txt
+end
+
+local backtick = function(s)
+    local t1 = {}
+    for token in string.gmatch(s, "[^$]+") do
+        table.insert(t1, token)
+    end
+
+    local t3 = {}
+    for _, v in pairs(t1) do
+        local t2 = {}
+        for token in string.gmatch(v, "[^@]+") do
+            if string.find(token, ' ') or string.find(token, "^_") or string.find(token, "^[0-9]") then
+                table.insert(t2, '`'..token..'`')
+            else
+                table.insert(t2, token)
+            end
+        end
+        table.insert(t3, table.concat(t2, '@'))
+    end
+    return table.concat(t3, '$')
 end
 
 local format_usage = function(fname, u)
@@ -366,12 +387,14 @@ source.asynccb = function(cid, compl)
                         stxt = '9'
                     end
                 end
+                local wrd = string.gsub(v['word'], "\x13", "'")
+                wrd = backtick(wrd)
                 table.insert(resp,
-                {label = string.gsub(v['word'], "\x13", "'"),
+                {label = wrd,
                 kind = kind,
                 user_data = v.user_data,
                 sortText = stxt,
-                textEdit = {newText = string.gsub(v['word'], "\x13", "'"), range = ter},
+                textEdit = {newText = wrd, range = ter},
                 documentation = {
                     kind = cmp.lsp.MarkupKind.Markdown,
                     value = v['menu'] }})
@@ -578,6 +601,7 @@ source.complete = function(_, request, callback)
     compl_id = compl_id + 1
 
     local wrd = string.sub(request.context.cursor_before_line, request.offset)
+    wrd = string.gsub(wrd, '`', '')
     ter = {
         start = {
             line = request.context.cursor.line,
