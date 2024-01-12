@@ -208,7 +208,7 @@ local backtick = function(s)
     for _, v in pairs(t1) do
         local t2 = {}
         for token in string.gmatch(v, "[^@]+") do
-            if string.find(token, ' ') or string.find(token, "^_") or string.find(token, "^[0-9]") then
+            if (not string.find(token, " = $")) and (string.find(token, ' ') or string.find(token, "^_") or string.find(token, "^[0-9]")) then
                 table.insert(t2, '`'..token..'`')
             else
                 table.insert(t2, token)
