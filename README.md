@@ -23,25 +23,44 @@ require'cmp'.setup {
 
 ### cmp-nvim-r
 
-`cmp-nvim-r` has two options:
+`cmp-nvim-r` has the following options:
 
   - `filetypes`: The list of file types for which the source should be enabled.
-     (default: 'r', 'rmd', 'quarto', 'rnoweb', 'rhelp')
+    Default: `{'r', 'rmd', 'quarto', 'rnoweb', 'rhelp'}`
+
 
   - `doc_width`: The expected maximum width of the floating documentation
     window. This value is used to format the usage section of function
-    documentation. Arguments are concatened, but line breaks are inserted
+    documentation. Arguments are concatenated, but line breaks are inserted
     between arguments before the line reaches the number of columns defined by
-    `doc_width`. (default: 58)
+    `doc_width`. Default: `58`.
 
     See also the option `maxwidth` in [lspkind.nvim](https://github.com/onsails/lspkind.nvim).
+
+  - `fun_data_1`: List of functions that receive a `data.frame` as its first
+    argument and for which the `data.frame`s columns names should be
+    completed. This option is overridden by `g:R_fun_data_1`. Default:
+    `{'select', 'rename', 'mutate', 'filter'}`.
+
+  - `fun_data_2`: Dictionary with parent functions as keys. The value of each
+    key is a list of functions that are expected to be nested in the parent
+    function which receives a data.frame as its first arguments. Column names
+    of the `data.frame` are completed as arguments of the nested function.
+    This option is overridden by `g:R_fun_data_1`. Default:
+    `{ggplot = {'aes'}, with = {'*'}}`.
+
+  - `quarto_intel`: Path to `yaml-intelligence-resources.json` which is part
+    of `quarto` application and has all necessary information for completion
+    of valid YAML options in an Quarto document.  This option is overridden by
+    `g:R_quarto_intel`. Default: `nil` (`cmp-nvim-r` will try to find the file).
 
 Below is an example of how to set theses options:
 
 ```lua
-require'cmp_nvim_r'.setup({
-  filetypes = {'r', 'rmd', 'quarto'},
+require("cmp_nvim_r").setup({
+  filetypes = {"r", "rmd", "quarto"},
   doc_width = 58
+  quarto_intel = "~/Downloads/quarto-1.1.251/share/editor/tools/yaml/yaml-intelligence-resources.json"
   })
 ```
 
@@ -51,16 +70,15 @@ The source `cmp_nvim_r` does not require any special configuration of
 `nvim-cmp` to work, and people have different preferences and workflows.
 Anyway, I share below what worked best for me:
 
-  - `cmp-nvim-r` sets the field sortText of completed items as "0" for
+  - `cmp-nvim-r` sets the field `sortText` of completed items as "0" for
     function arguments and "9" for everything else. This means that function
     arguments will always be at the top of the list of suggestions if you put
     `cmp.config.compare.sort_text` at the top of list of compare `nvim-cmp`
     functions.
 
   - Install a Nerd font and install and configure your terminal emulator to
-    use it. Then install
-    [lspkind.nvim](https://github.com/onsails/lspkind.nvim) to have symbols
-    representing the kind of object whose name is being completed.
+    use it. Then install [lspkind.nvim](https://github.com/onsails/lspkind.nvim)
+    to have symbols representing the kind of object whose name is being completed.
 
   - The names of kind of objects are generic names of the LSP server protocol
     and do not match the classes of R objects. So, it is better to hide the

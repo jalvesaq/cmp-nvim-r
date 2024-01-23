@@ -27,8 +27,13 @@ local kindtbl = {["f"] = cmp.lsp.CompletionItemKind.Function,       -- function
                  ["v"] = cmp.lsp.CompletionItemKind.Field,          -- data.frame column
                  ["*"] = cmp.lsp.CompletionItemKind.TypeParameter } -- other
 
-local options = {filetypes = {'r', 'rmd', 'quarto', 'rnoweb', 'rhelp'},
-                 doc_width = 58}
+local options = {
+    filetypes = {'r', 'rmd', 'quarto', 'rnoweb', 'rhelp'},
+    doc_width = 58,
+    fun_data_1 = {'select', 'rename', 'mutate', 'filter'},
+    fun_data_2 = {ggplot = {'aes'}, with = {'*'}},
+    quarto_intel = nil
+}
 
 local get_chunk_opts = function()
     local copts = {}
@@ -56,8 +61,8 @@ local get_quarto_cell_opts = function()
     local qopts  = {}
     local quarto_yaml_intel
 
-    if vim.g.R_quarto_intel then
-        quarto_yaml_intel = vim.g.R_quarto_intel
+    if options.quarto_intel then
+        quarto_yaml_intel = options.quarto_intel
     else
         if vim.fn.has('win32') == 1 then
             local path = os.getenv("PATH")
@@ -167,6 +172,15 @@ end
 
 source.setup = function(opts)
     options = vim.tbl_extend('force', options, opts or {})
+    if vim.g.R_fun_data_1 then
+        options.fun_data_1 = vim.g.R_fun_data_1
+    end
+    if vim.g.R_fun_data_2 then
+        options.fun_data_2 = vim.g.R_fun_data_2
+    end
+    if vim.g.R_quarto_intel then
+        options.quarto_intel = vim.g.R_quarto_intel
+    end
 end
 
 source.get_keyword_pattern = function()
@@ -484,7 +498,7 @@ local NeedRArguments = function(line, lnum)
     -- Check if this is function for which we expect to complete data frame column names
     if funname then
         -- Check if the data.frame is supposed to be the first argument:
-        for _, v in pairs(vim.g.R_fun_data_1) do
+        for _, v in pairs(options.fun_data_1) do
             if v == funname then
                 listdf = 1
                 break
@@ -495,7 +509,7 @@ local NeedRArguments = function(line, lnum)
         -- nesting function:
         if not listdf and cnum > 1 then
             nline = string.sub(nline, 1, cnum)
-            for k, v in pairs(vim.g.R_fun_data_2) do
+            for k, v in pairs(options.fun_data_2) do
                 for _, a in pairs(v) do
                     if a == '*' or funname == a then
                         _, funname2, firstobj2, nline, nlnum, _ = GetFirstObj(nline, nlnum)
@@ -541,7 +555,7 @@ source.complete = function(_, request, callback)
         if request.context.filetype == 'rmd' or request.context.filetype == 'quarto' then
             isr = false
             for i = lnum, 1, -1 do
-                if string.find(lines[i], "^```{") then
+                if string.find(lines[i], "^```{%s*r") then
                     isr = true
                     break
                 elseif string.find(lines[i], "^```$") or string.find(lines[i], "^---$") or string.find(lines[i], "^%.%.%.$") then
