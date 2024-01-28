@@ -9,6 +9,7 @@ local compl_id = 0
 local ter = nil
 local qcell_opts = nil
 local chunk_opts = nil
+local rhelp_opts = nil
 
 -- Translate symbols added by nvimcom to LSP kinds
 local kindtbl = {["f"] = cmp.lsp.CompletionItemKind.Function,       -- function
@@ -35,6 +36,15 @@ local options = {
     quarto_intel = nil
 }
 
+local reset_r_compl = function ()
+    for _, v in pairs(cmp.core.sources) do
+        if v.name == "cmp_nvim_r" then
+            v:reset()
+            break
+        end
+    end
+end
+
 local get_chunk_opts = function()
     local copts = {}
     local f = io.open(vim.g.rplugin.home .. '/R/chunk_options.json', 'r')
@@ -55,6 +65,35 @@ local get_chunk_opts = function()
         end
     end
     return copts
+end
+
+local get_rhelp_opts = function ()
+    local wlist = {
+        '\\Alpha', '\\Beta', '\\Chi', '\\Delta', '\\Epsilon', '\\Eta', '\\Gamma', '\\Iota', '\\Kappa',
+        '\\Lambda', '\\Mu', '\\Nu', '\\Omega', '\\Omicron', '\\Phi', '\\Pi', '\\Psi', '\\R', '\\Rdversion', '\\Rho',
+        '\\S4method', '\\Sexpr', '\\Sigma', '\\Tau', '\\Theta', '\\Upsilon', '\\Xi', '\\Zeta', '\\acronym', '\\alias',
+        '\\alpha', '\\arguments', '\\author', '\\beta', '\\bold', '\\chi', '\\cite', '\\code', '\\command', '\\concept',
+        '\\cr', '\\dQuote', '\\delta', '\\deqn', '\\describe', '\\description', '\\details', '\\dfn', '\\docType',
+        '\\dontrun', '\\dontshow', '\\donttest', '\\dots', '\\email', '\\emph', '\\encoding', '\\enumerate', '\\env',
+        '\\epsilon', '\\eqn', '\\eta', '\\examples', '\\file', '\\format', '\\gamma', '\\ge', '\\href', '\\iota',
+        '\\item', '\\itemize', '\\kappa', '\\kbd', '\\keyword', '\\lambda', '\\ldots', '\\le', '\\link', '\\linkS4class',
+        '\\method', '\\mu', '\\name', '\\newcommand', '\\note', '\\nu', '\\omega', '\\omicron', '\\option', '\\phi',
+        '\\pi', '\\pkg', '\\preformatted', '\\psi', '\\references', '\\renewcommand', '\\rho', '\\sQuote', '\\samp',
+        '\\section', '\\seealso', '\\sigma', '\\source', '\\special', '\\strong', '\\subsection', '\\synopsis', '\\tab',
+        '\\tabular', '\\tau', '\\testonly', '\\theta', '\\title', '\\upsilon', '\\url', '\\usage', '\\value', '\\var',
+        '\\verb', '\\xi', '\\zeta'
+    }
+    local rhopts = {}
+    for _, v in pairs(wlist) do
+        table.insert(rhopts,
+        {
+            word = v,
+            label = v,
+            kind = cmp.lsp.CompletionItemKind.TypeParameter
+        }
+        )
+    end
+    return rhopts
 end
 
 local get_quarto_cell_opts = function()
@@ -575,11 +614,24 @@ source.complete = function(_, request, callback)
         elseif request.context.filetype == 'rhelp' then
             isr = false
             for i = lnum, 1, -1 do
-                if string.find(lines[i], [[\examples{]]) or string.find(lines[i], [[\usage{]]) then
-                    isr = true
+                if string.find(lines[i], [[\%S+{]]) then
+                    if string.find(lines[i], [[\examples{]]) or string.find(lines[i], [[\usage{]]) then
+                        isr = true
+                    end
                     break
-                elseif string.find(lines[i], "\\%w+{") then
-                    return {}
+                end
+            end
+            if not isr then
+                local wrd = string.sub(request.context.cursor_before_line, request.offset)
+                if #wrd == 0 then
+                    reset_r_compl()
+                    return nil
+                end
+                if wrd == "\\" then
+                    if not rhelp_opts then
+                        rhelp_opts = get_rhelp_opts()
+                    end
+                    callback({ items = rhelp_opts })
                 end
             end
         end
@@ -679,12 +731,7 @@ source.complete = function(_, request, callback)
     end
 
     if #wrd == 0 then
-        for _, v in pairs(cmp.core.sources) do
-            if v.name == "cmp_nvim_r" then
-                v:reset()
-                break
-            end
-        end
+        reset_r_compl()
         return nil
     end
 
