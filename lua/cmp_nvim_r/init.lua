@@ -575,6 +575,9 @@ end
 
 
 source.complete = function(_, request, callback)
+    if not vim.g.rplugin then
+        return
+    end
     cb_cmp = callback
 
     -- Check if this is Rmd and the cursor is in the chunk header
